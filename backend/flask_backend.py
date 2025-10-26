@@ -12,7 +12,7 @@ CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
 # MySQL connection settings — replace with your values or use env vars
 DB_CONFIG = {
     "user": os.getenv("DB_USER", "todo_user"),
-    "password": os.getenv("DB_PASSWORD", "profakymbo"),
+    "password": os.getenv("DB_PASSWORD", "prof"),
     "host": os.getenv("DB_HOST", "127.0.0.1"),
     "database": os.getenv("DB_NAME", "todo_list"),
     "port": int(os.getenv("DB_PORT", 3306)),
