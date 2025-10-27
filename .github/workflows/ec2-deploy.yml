@@ -1,0 +1,77 @@
+name: Build & Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Build React frontend
+        working-directory: frontend/client
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Prepare deploy package
+        run: |
+          cd $GITHUB_WORKSPACE
+          rm -f deploy.tar.gz
+          tar -czf deploy.tar.gz \
+            backend \
+            frontend/client/build \
+            backend/requirements.txt
+
+      - name: Copy package to EC2
+        uses: appleboy/scp-action@v0.1.5
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: "deploy.tar.gz"
+          target: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Remote deploy (unpack, venv, install, restart)
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            DEPLOY_DIR="${{ secrets.DEPLOY_PATH }}"
+            mkdir -p "$DEPLOY_DIR"
+            cd "$DEPLOY_DIR"
+            tar -xzf deploy.tar.gz -C .
+            # Backend: venv & deps
+            cd "$DEPLOY_DIR/backend"
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+            # Frontend: deploy static site to nginx folder
+            sudo mkdir -p /var/www/myapp
+            sudo rm -rf /var/www/myapp/*
+            sudo cp -r "$DEPLOY_DIR/frontend/client/build/"* /var/www/myapp/
+            sudo chown -R ${{ secrets.EC2_USER }}: "$DEPLOY_DIR"
+            # Restart systemd service (create unit once manually as shown)
+            sudo systemctl daemon-reload || true
+            sudo systemctl restart myapp.service || true
+            rm -f "$DEPLOY_DIR/deploy.tar.gz"
