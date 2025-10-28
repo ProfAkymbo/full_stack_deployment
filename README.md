@@ -27,3 +27,4 @@ We’ll use Flask to create a REST API that connects to a MySQL database.
 ```bash
 python --version
 pip --version
+```
