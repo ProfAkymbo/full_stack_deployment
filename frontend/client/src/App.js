@@ -1,5 +1,5 @@
-// ...existing code...
-import React, { useState, useEffect } from 'react';
+// App.js
+import React, { useState, useEffect, useCallback } from 'react';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:5000/todos';
 
@@ -17,7 +17,8 @@ function App() {
     setTimeout(() => setMsg(null), 2500);
   };
 
-  const fetchTodos = async () => {
+  // ✅ Wrapped in useCallback to avoid ESLint dependency warnings
+  const fetchTodos = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(API, { cache: 'no-store' });
@@ -30,11 +31,12 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API]); // Safe dependency list
 
+  // ✅ useEffect with fetchTodos as dependency
   useEffect(() => {
     fetchTodos();
-  }, []);
+  }, [fetchTodos]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -223,4 +225,3 @@ function App() {
 }
 
 export default App;
-// ...existing code...
