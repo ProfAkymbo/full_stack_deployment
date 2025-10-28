@@ -17,7 +17,7 @@ function App() {
     setTimeout(() => setMsg(null), 2500);
   };
 
-  // ✅ Wrapped in useCallback to avoid ESLint dependency warnings
+  // ✅ Fixed: removed `API` from dependency list
   const fetchTodos = useCallback(async () => {
     try {
       setLoading(true);
@@ -31,9 +31,8 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [API]); // Safe dependency list
+  }, []); // ✅ clean — API is constant, so no dependency needed
 
-  // ✅ useEffect with fetchTodos as dependency
   useEffect(() => {
     fetchTodos();
   }, [fetchTodos]);
